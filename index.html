@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بازی آموزشی عطر یاس</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        /* Loading Custom Fonts Correctly */
+        @font-face {
+            font-family: 'BTitr';
+            src: url('https://cdn.jsdelivr.net/gh/rokhafrooz1960-debug/my_fonts/B%20Titr%20Bold_0.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: 'BKoodak';
+            src: url('https://cdn.jsdelivr.net/gh/rokhafrooz1960-debug/my_fonts/B%20Koodak%20Bold_0.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'BKoodak', Tahoma, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .title-font {
+            font-family: 'BTitr', Tahoma, sans-serif;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        /* Premium Glassmorphism */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+        }
+
+        /* Animated Title */
+        .header-3d {
+            background: linear-gradient(to bottom, #ffffff, #e0f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.6));
+            animation: floatText 3s ease-in-out infinite;
+        }
+
+        @keyframes floatText {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Premium 3D Buttons */
+        .btn-3d {
+            position: relative;
+            transition: all 0.15s ease;
+            box-shadow: 0 8px 0px #0284c7, 0 15px 20px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+            border: none;
+        }
+        .btn-3d:active {
+            transform: translateY(8px);
+            box-shadow: 0 0px 0px #0284c7, 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .btn-option {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 6px 0px #15803d, 0 10px 15px rgba(0,0,0,0.15);
+            background: linear-gradient(180deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+        .btn-option:hover:not(:disabled) {
+            filter: brightness(1.1);
+        }
+        .btn-option:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0px #15803d, 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .btn-option:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
+
+        .btn-wrong {
+            box-shadow: 0 6px 0px #b91c1c, 0 10px 15px rgba(0,0,0,0.15) !important;
+            background: linear-gradient(180deg, #f87171 0%, #ef4444 100%) !important;
+        }
+        .btn-wrong:active:not(:disabled) {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0px #b91c1c, 0 2px 4px rgba(0,0,0,0.2) !important;
+        }
+
+        /* Screen Transitions */
+        .screen {
+            display: none;
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-height: 95vh;
+            overflow-y: auto;
+            scrollbar-width: none; 
+        }
+        .screen::-webkit-scrollbar { display: none; }
+        .screen.active {
+            display: flex;
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        /* Floating Bubbles */
+        @keyframes floatBubble {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(2deg); }
+        }
+        .animate-bubble {
+            animation: floatBubble 3s ease-in-out infinite;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 999px;
+            overflow: hidden;
+            height: 10px;
+            margin-bottom: 15px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #a855f7, #3b82f6, #38bdf8);
+            width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Flowers (Jasmine) */
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg) scale(0.5); opacity: 0; }
+            10% { opacity: 1; transform: translateY(0vh) rotate(45deg) scale(1); }
+            90% { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg) scale(0.8); opacity: 0; }
+        }
+        .flower {
+            position: absolute;
+            color: #f8fafc;
+            text-shadow: 0 0 10px #fef08a, 0 0 2px #ca8a04;
+            animation: fall 5s linear infinite;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .error-msg {
+            color: #ef4444;
+            font-size: 1.1rem;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            height: 24px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Disable user text selection for UI elements */
+        h1, h2, h3, h4, p, span, div {
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Audio Element -->
+    <audio id="bg-music" loop>
+        <source src="https://kheimegah.com/sotoodeh/voc/%D9%81%DA%A9%D8%B1-%D9%85%D8%B1%D8%A7-%DA%A9%D8%B1%D8%AF%DB%8C-%DA%A9%D9%87-%D9%85%DB%8C%D8%AE%D9%88%D8%A7%D9%87%DB%8C-%D8%A8%D8%B1%D9%88%DB%8C-%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF-%D8%B5%D9%88%D8%AA-%D9%86%D9%85%D8%A7%D9%87%D9%86%DA%AF-%D9%85%D8%AF%D8%A7%D8%AD%DB%8C-%D8%B2%D9%85%DB%8C%D9%86%D9%87-%D9%81%D8%A7%D8%B7%D9%85%DB%8C%D9%87-%DB%B1%DB%B4%DB%B0%DB%B5-%DA%A9%D8%B1%D8%A8%D9%84%D8%A7%DB%8C%DB%8C-%D8%AD%D8%B3%DB%8C%D9%86-%D8%B3%D8%AA%D9%88%D8%AF%D9%87/img/o/12557/%DA%A9%D8%B1%D8%A8%D9%84%D8%A7%DB%8C%DB%8C%20%D8%AD%D8%B3%DB%8C%D9%86%20%D8%B3%D8%AA%D9%88%D8%AF%D9%87_%D9%81%DA%A9%D8%B1%20%D9%85%D8%B1%D8%A7%20%DA%A9%D8%B1%D8%AF%DB%8C%20%DA%A9%D9%87%20%D9%85%DB%8C%D8%AE%D9%88%D8%A7%D9%87%DB%8C%20%D8%A8%D8%B1%D9%88%DB%8C%20-%20%D8%AF%D8%A7%D9%86%D9%84%D9%88%D8%AF%20%D8%B5%D9%88%D8%AA%20%D9%86%D9%85%D8%A7%D9%87%D9%86%DA%AF%20%D9%85%D8%AF%D8%A7%D8%AD%DB%8C%20%D8%B2%D9%85%DB%8C%D9%86%D9%87%20%D9%81%D8%A7%D8%B7%D9%85%DB%8C%D9%87%20%DB%B1%DB%B4%DB%B0%DB%B5%20%DA%A9%D8%B1%D8%A8%D9%84%D8%A7%DB%8C%DB%8C%20%D8%AD%D8%B3%DB%8C%D9%86%20%D8%B3%D8%AA%D9%88%D8%AF%D9%87-1792692762.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- 3D Canvas Background -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay Layer -->
+    <div id="ui-layer">
+        
+        <!-- Header: School Name -->
+        <div class="w-full text-center pt-6 pb-2 pointer-events-auto z-50 px-4">
+            <h1 class="text-xl sm:text-2xl md:text-4xl title-font header-3d mb-1 whitespace-nowrap">مجتمع آموزشی فرهنگی دکتر حسابی</h1>
+            <h2 class="text-base md:text-2xl text-white font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">بازی ماجراجویی عطر یاس</h2>
+        </div>
+
+        <!-- Screens Container -->
+        <div class="flex-1 flex items-center justify-center p-3 relative pointer-events-none w-full pb-8">
+            
+            <!-- Intro Screen -->
+            <div id="intro-screen" class="screen active glass-panel p-6 md:p-8 max-w-md w-full flex-col items-center pointer-events-auto text-center">
+                <img src="https://my.uploadkon.ir/d/FiKs5SYy50AAGYQUQeYGW9ESxlFuLS/MTEwMjE3fHBhZA.png" alt="Intro Image" class="w-full max-w-[250px] mx-auto rounded-3xl mb-6 shadow-lg border-4 border-white">
+                <button onclick="goToLogin()" class="w-full text-white title-font text-xl md:text-2xl py-4 rounded-2xl btn-3d mt-2">شروع بازی</button>
+            </div>
+
+            <!-- Login Screen -->
+            <div id="login-screen" class="screen glass-panel p-6 md:p-8 max-w-md w-full flex-col items-center pointer-events-auto text-center">
+                <div class="relative w-24 h-24 mb-6 mx-auto">
+                    <div class="absolute inset-0 bg-purple-300 rounded-full animate-ping opacity-50"></div>
+                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=yasgame&backgroundColor=c0aede" alt="آواتار" class="relative w-full h-full rounded-full border-4 border-white shadow-xl bg-purple-200">
+                </div>
+                
+                <h3 class="text-2xl md:text-3xl title-font text-purple-900 mb-2">سلام قهرمان!</h3>
+                <p class="text-gray-700 mb-6 text-sm md:text-lg font-bold">برای شروع بازی، لطفاً نام خودت را بنویس:</p>
+                
+                <input type="text" id="player-name" placeholder="نام و نام خانوادگی..." class="w-full px-5 py-4 rounded-2xl border-2 border-purple-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none text-lg md:text-xl mb-2 text-center shadow-inner transition-all text-purple-900 font-bold bg-white/90 pointer-events-auto">
+                <div id="name-error" class="error-msg title-font">لطفاً نام زیبایت را وارد کن!</div>
+
+                <button onclick="startGame()" class="w-full text-white title-font text-xl md:text-2xl py-4 rounded-2xl btn-3d mt-2">بزن بریم!</button>
+            </div>
+
+            <!-- Game Screen -->
+            <div id="game-screen" class="screen glass-panel p-4 md:p-6 max-w-2xl w-full flex-col pointer-events-auto shadow-2xl relative my-auto">
+                
+                <!-- Progress Bar -->
+                <div class="progress-container">
+                    <div id="progress-bar" class="progress-bar"></div>
+                </div>
+
+                <!-- Stats Bar -->
+                <div class="flex justify-between items-center mb-2 md:mb-3 bg-white/60 p-2 md:p-3 rounded-xl border border-white/50 shadow-sm">
+                    <div class="flex items-center gap-1 md:gap-2">
+                        <span class="text-lg md:text-2xl drop-shadow-sm">❓</span>
+                        <div class="text-sm md:text-lg text-purple-900 font-bold">سوال <span id="question-display" class="text-lg md:text-xl text-purple-700">۱</span> از ۱۰</div>
+                    </div>
+                    <div class="flex items-center gap-1 md:gap-2">
+                        <span class="text-lg md:text-2xl drop-shadow-sm">⭐</span>
+                        <div class="text-sm md:text-lg text-green-700 font-bold">امتیاز: <span id="score-display" class="text-lg md:text-xl">۰</span></div>
+                    </div>
+                </div>
+
+                <!-- Audio Controls (Moved Above Question Box) -->
+                <div id="audio-controls" class="flex justify-end items-center gap-2 mb-2 w-full relative z-20 pointer-events-auto pr-1">
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" class="w-20 md:w-24 accent-purple-600 outline-none cursor-pointer" oninput="changeVolume(this.value)">
+                    <button id="toggle-audio" class="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full bg-purple-100 hover:bg-purple-200 text-purple-700 transition shadow-sm border border-purple-200" onclick="toggleMusic()">
+                        <svg id="audio-icon-play" class="w-5 h-5 md:w-6 md:h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        <svg id="audio-icon-pause" class="w-5 h-5 md:w-6 md:h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Question Area -->
+                <div class="bg-gradient-to-br from-white to-blue-50/90 rounded-2xl p-4 md:p-6 mb-6 md:mb-8 border-2 border-blue-200 shadow-[inset_0_2px_10px_rgba(0,0,0,0.05)] min-h-[120px] flex items-center justify-center relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-16 h-16 bg-blue-100 rounded-bl-full opacity-50"></div>
+                    <p id="question-text" class="text-lg md:text-2xl text-slate-800 text-center leading-relaxed font-bold z-10 w-full"></p>
+                </div>
+
+                <!-- Options/Mechanics Area -->
+                <div id="options-container" class="flex flex-col gap-3 md:gap-4 mt-auto min-h-[180px] justify-end">
+                    <!-- Dynamic Buttons Injected Here -->
+                </div>
+
+                <!-- Live Feedback Message Overlay -->
+                <div id="feedback-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm rounded-2xl hidden z-50 transition-opacity duration-300 opacity-0 pointer-events-none">
+                    <div id="feedback-content" class="bg-white p-5 md:p-8 rounded-3xl text-center transform transition-transform duration-300 shadow-2xl border-4 border-white scale-90 mx-4 w-11/12 max-w-sm">
+                        <div id="feedback-icon" class="text-5xl md:text-6xl mb-3 md:mb-4 animate-bounce">✨</div>
+                        <h2 id="feedback-title" class="text-3xl md:text-4xl title-font mb-2"></h2>
+                        <p id="feedback-desc" class="text-base md:text-xl text-gray-700 font-bold mt-2 leading-relaxed"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="screen glass-panel p-6 md:p-8 max-w-md w-full flex-col items-center pointer-events-auto text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-yellow-200/40 to-transparent pointer-events-none"></div>
+                
+                <div class="text-6xl mb-4 z-10 relative drop-shadow-md">🎓</div>
+                <h3 class="text-3xl md:text-4xl title-font text-amber-600 mb-2 z-10 drop-shadow-sm">کارنامه افتخار</h3>
+                <p class="text-lg md:text-xl text-gray-800 mb-6 z-10 font-bold"><span id="final-name" class="text-purple-700 text-2xl"></span> عزیز، عالی بودی!</p>
+                
+                <div class="w-full bg-white/90 backdrop-blur-md rounded-2xl p-4 md:p-5 shadow-lg border border-white mb-6 z-10">
+                    <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                        <span class="text-base md:text-lg text-gray-600 font-bold">امتیاز کل:</span>
+                        <span id="final-score" class="text-3xl font-bold title-font text-blue-600 drop-shadow-sm">۰</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-base md:text-lg text-gray-600 font-bold">پاسخ‌های صحیح:</span>
+                        <span id="final-correct" class="text-xl font-bold text-green-600 bg-green-100 px-3 py-1 rounded-lg">۰</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-base md:text-lg text-gray-600 font-bold">پاسخ‌های غلط:</span>
+                        <span id="final-wrong" class="text-xl font-bold text-red-600 bg-red-100 px-3 py-1 rounded-lg">۰</span>
+                    </div>
+                </div>
+
+                <p id="final-message" class="text-lg md:text-2xl title-font text-sky-700 mb-8 z-10 leading-relaxed drop-shadow-sm"></p>
+                
+                <button onclick="location.reload()" class="w-full bg-purple-500 text-white title-font text-xl md:text-2xl py-4 rounded-2xl btn-3d z-10" style="background: linear-gradient(180deg, #c084fc 0%, #9333ea 100%); box-shadow: 0 8px 0px #6b21a8, 0 15px 20px rgba(0,0,0,0.3);">دوباره بازی کن</button>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Question Bank (Based on "عطر یاس") ---
+        const questionBank = [
+            { q: "پیامبر اکرم (ص) چه نامی برای دخترشان انتخاب کردند؟", a: "فاطمه", w1: "خدیجه", w2: "زینب", w3: "آسیه" },
+            { q: "پیامبر (ص) به دلیل رسیدگی‌های فراوان حضرت فاطمه، ایشان را چه می‌خواندند؟", a: "ام ابیها", w1: "ام المؤمنین", w2: "صدیقه", w3: "طاهره" },
+            { q: "مادر حضرت فاطمه (س) چه نام داشتند؟", a: "حضرت خدیجه (س)", w1: "حضرت مریم (س)", w2: "حضرت آسیه (س)", w3: "حضرت سارا (س)" },
+            { q: "کدام یک از فرزندان حضرت فاطمه (س) نیستند؟", a: "قاسم", w1: "حسن", w2: "حسین", w3: "زینب" },
+            { q: "حضرت فاطمه (س) درباره خستگی کارهای خانه چه فرمودند؟", a: "برای عزیزان خستگی شیرین است", w1: "کار خانه بسیار سخت است", w2: "باید همیشه استراحت کرد", w3: "فقط دیگران باید کار کنند" },
+            { q: "در خانه کوچک علی (ع) و فاطمه (س)، چه چیزی از هر ثروتی با ارزش‌تر بود؟", a: "ایمان و محبت", w1: "طلا و نقره", w2: "فرش‌های زیبا", w3: "خانه‌های بزرگ" },
+            { q: "هنگامی که مرد نیازمند در زد، حضرت فاطمه (س) چه کردند؟", a: "غذا را به نیازمند دادند", w1: "در را باز نکردند", w2: "فقط نیمی از غذا را دادند", w3: "گفتند غذا نداریم" },
+            { q: "حضرت فاطمه (س) در دعاهای شبانه خود، اول چه کسانی را دعا می‌کردند؟", a: "همسایه‌ها و نیازمندان", w1: "فقط فرزندان خودشان", w2: "فقط خودشان و پیامبر", w3: "فقط اقوام نزدیک" },
+            { q: "پاسخ حضرت فاطمه (س) به امام حسن (ع) درباره دعا برای دیگران چه بود؟", a: "اول همسایه، بعد خانه", w1: "فراموش کردم", w2: "خدا خودش می‌داند", w3: "اول خودمان" },
+            { q: "نام سرزمین آباد با نخلستان‌ها که حضرت فاطمه (س) آن را حق خود می‌دانستند چه بود؟", a: "فدک", w1: "مکه", w2: "مدینه", w3: "طائف" },
+            { q: "حضرت فاطمه (س) برای دفاع از حق خود در مسجد به چه چیزی استناد کردند؟", a: "قرآن", w1: "شمشیر و زور", w2: "قدرت یارانشان", w3: "ثروت" },
+            { q: "پیام بزرگ سخنرانی حضرت فاطمه (س) در مسجد چه بود؟", a: "حق را فراموش نکنید", w1: "همیشه سکوت کنید", w2: "با همه بجنگید", w3: "تسلیم شوید" },
+            { q: "در حادثه هجوم به خانه، کدام فرزند حضرت فاطمه (س) سقط شد؟", a: "حضرت محسن (ع)", w1: "حضرت علی اصغر (ع)", w2: "حضرت قاسم (ع)", w3: "حضرت عبدالله (ع)" },
+            { q: "حضرت فاطمه (س) به حضرت زینب (س) چه سفارشی کردند؟", a: "در راه حق محکم بایست", w1: "فقط در خانه بمان", w2: "با کسی صحبت نکن", w3: "همیشه گریه کن" },
+            { q: "چرا حضرت فاطمه (س) وصیت کردند که مراسم تشییعشان شبانه انجام شود؟", a: "نشانه اعتراض", w1: "چون شب خلوت‌تر بود", w2: "پنهان ماندن از گرما", w3: "سنت پیامبر بود" }
+        ];
+
+        // --- 2. Game State & Logic ---
+        let playerName = "";
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let correctAnswers = 0;
+        let wrongAnswers = 0;
+
+        // Music Logic
+        const bgMusic = document.getElementById('bg-music');
+        bgMusic.volume = 0.5;
+        let isMusicPlaying = false;
+
+        function toggleMusic() {
+            if (isMusicPlaying) {
+                bgMusic.pause();
+                document.getElementById('audio-icon-pause').classList.add('hidden');
+                document.getElementById('audio-icon-play').classList.remove('hidden');
+            } else {
+                bgMusic.play().catch(e => console.log('Audio play blocked:', e));
+                document.getElementById('audio-icon-play').classList.add('hidden');
+                document.getElementById('audio-icon-pause').classList.remove('hidden');
+            }
+            isMusicPlaying = !isMusicPlaying;
+        }
+
+        function changeVolume(val) {
+            bgMusic.volume = val;
+        }
+
+        function goToLogin() {
+            switchScreen('login-screen');
+            // Try to start music on first user interaction
+            if (!isMusicPlaying) {
+                toggleMusic();
+            }
+        }
+
+        // Sound Synthesizers
+        let correctSynth, wrongSynth;
+
+        function initAudio() {
+            if(!correctSynth) {
+                correctSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+                correctSynth.volume.value = -12; // تنظیم بلندی صدا
+                
+                wrongSynth = new Tone.Synth({
+                    oscillator: { type: "fmsquare", modulationType: "sawtooth" },
+                    envelope: { attack: 0.05, decay: 0.2, sustain: 0.2, release: 1 }
+                }).toDestination();
+                wrongSynth.volume.value = -12;
+            }
+        }
+
+        const bgColors = [0x38bdf8, 0xa78bfa, 0xf472b6, 0xfacc15, 0x34d399, 0x60a5fa, 0xc084fc, 0xf87171, 0xfbbf24, 0x4ade80];
+
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+            }
+            return array;
+        }
+
+        function switchScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            setTimeout(() => {
+                document.getElementById(screenId).classList.add('active');
+            }, 50);
+        }
+
+        function updateScoreUI() {
+            document.getElementById('score-display').innerText = score;
+        }
+
+        async function startGame() {
+            // فعال‌سازی موتور صوتی با اولین کلیک کاربر
+            await Tone.start();
+            initAudio();
+            
+            const nameInput = document.getElementById('player-name').value.trim();
+            const errorMsg = document.getElementById('name-error');
+            
+            if (!nameInput) {
+                errorMsg.style.opacity = '1';
+                return;
+            }
+            errorMsg.style.opacity = '0';
+            playerName = nameInput;
+
+            // Pick 10 random questions
+            currentQuestions = shuffleArray([...questionBank]).slice(0, 10);
+            currentQuestionIndex = 0;
+            score = 0;
+            correctAnswers = 0;
+            wrongAnswers = 0;
+            updateScoreUI();
+
+            switchScreen('game-screen');
+            setupInitialShapes();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= 10) {
+                endGame();
+                return;
+            }
+            
+            // Progress Bar Update
+            const progressPercent = (currentQuestionIndex / 10) * 100;
+            document.getElementById('progress-bar').style.width = progressPercent + '%';
+
+            // Update Question Display
+            document.getElementById('question-display').innerText = (currentQuestionIndex + 1);
+
+            // Change background color based on question index
+            changeEnvironmentColor(currentQuestionIndex);
+
+            const qData = currentQuestions[currentQuestionIndex];
+            document.getElementById('question-text').innerText = qData.q;
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = ''; 
+
+            renderOptions(qData, optionsContainer);
+        }
+
+        function getShuffledOptions(qData) {
+            return shuffleArray([
+                { text: qData.a, isCorrect: true },
+                { text: qData.w1, isCorrect: false },
+                { text: qData.w2, isCorrect: false },
+                { text: qData.w3, isCorrect: false }
+            ]);
+        }
+
+        // --- MECHANICS ---
+        
+        // Classic 4 Options
+        function renderOptions(qData, container) {
+            const answers = getShuffledOptions(qData);
+            const grid = document.createElement('div');
+            grid.className = "grid grid-cols-1 md:grid-cols-2 gap-3 w-full";
+            answers.forEach((ans) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-option w-full py-4 px-3 rounded-xl text-sm md:text-base font-bold title-font shadow-sm flex items-center justify-center min-h-[64px]';
+                btn.innerText = ans.text;
+                btn.onclick = () => handleAnswer(ans.isCorrect, btn);
+                grid.appendChild(btn);
+            });
+            container.appendChild(grid);
+        }
+
+        // --- Answer Handling & Feedback ---
+        function handleAnswer(isCorrect, element) {
+            // Disable all buttons in options container to prevent double clicking
+            const buttons = document.querySelectorAll('#options-container button, .btn-option');
+            buttons.forEach(b => {
+                b.disabled = true;
+                b.style.pointerEvents = 'none';
+            });
+
+            const feedbackMsg = document.getElementById('feedback-msg');
+            const feedbackContent = document.getElementById('feedback-content');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+
+            feedbackMsg.classList.remove('hidden');
+
+            setTimeout(() => {
+                feedbackMsg.style.opacity = '1';
+                feedbackContent.style.transform = 'scale(1)';
+            }, 10);
+
+            if (isCorrect) {
+                // پخش صدای پاسخ درست (ملودی پیروزی)
+                if(correctSynth && Tone.context.state === 'running') {
+                    const now = Tone.now();
+                    correctSynth.triggerAttackRelease("C5", "16n", now);
+                    correctSynth.triggerAttackRelease("E5", "16n", now + 0.1);
+                    correctSynth.triggerAttackRelease("G5", "16n", now + 0.2);
+                    correctSynth.triggerAttackRelease("C6", "8n", now + 0.3);
+                }
+
+                score += 10;
+                correctAnswers++;
+                if(element && element.id === 'puzzle-drop') {
+                    element.classList.remove('bg-slate-100/80', 'border-slate-400');
+                    element.classList.add('bg-green-100', 'border-green-500');
+                }
+                
+                feedbackContent.className = "bg-white p-6 md:p-8 rounded-3xl text-center shadow-2xl border-4 border-green-400 scale-90 transition-transform duration-300 mx-4 w-11/12 max-w-sm";
+                feedbackIcon.innerText = '✨';
+                feedbackTitle.innerText = 'آفرین!';
+                feedbackTitle.className = "text-3xl md:text-4xl title-font mb-2 text-green-600";
+                feedbackDesc.innerText = 'پاسخ شما کاملاً درست بود.';
+            } else {
+                // پخش صدای پاسخ نادرست (افکت هشدار)
+                if(wrongSynth && Tone.context.state === 'running') {
+                    const now = Tone.now();
+                    wrongSynth.triggerAttackRelease("D3", "8n", now);
+                    wrongSynth.triggerAttackRelease("A2", "4n", now + 0.15);
+                }
+
+                wrongAnswers++;
+                if(element && element.classList) {
+                    element.classList.add('btn-wrong');
+                }
+                if(element && element.id === 'puzzle-drop') {
+                    element.classList.remove('bg-slate-100/80', 'border-slate-400');
+                    element.classList.add('bg-red-100', 'border-red-500');
+                }
+
+                feedbackContent.className = "bg-white p-6 md:p-8 rounded-3xl text-center shadow-2xl border-4 border-red-400 scale-90 transition-transform duration-300 mx-4 w-11/12 max-w-sm";
+                feedbackIcon.innerText = '❌';
+                feedbackTitle.innerText = 'دقت کن!';
+                feedbackTitle.className = "text-3xl md:text-4xl title-font mb-2 text-red-600";
+                
+                const qData = currentQuestions[currentQuestionIndex];
+                feedbackDesc.innerHTML = `پاسخ درست این بود:<br><span class="text-green-700 font-bold mt-3 inline-block text-lg bg-green-50 px-3 py-1 rounded-lg">${qData.a}</span>`;
+            }
+
+            updateScoreUI();
+
+            // Proceed to next question after delay
+            setTimeout(() => {
+                feedbackMsg.style.opacity = '0';
+                feedbackContent.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    feedbackMsg.classList.add('hidden');
+                    currentQuestionIndex++;
+                    loadQuestion();
+                }, 300);
+            }, 2500); // Wait 2.5 seconds before moving on
+        }
+
+        function endGame() {
+            document.getElementById('progress-bar').style.width = '100%';
+            
+            setTimeout(() => {
+                switchScreen('result-screen');
+                document.getElementById('final-name').innerText = playerName;
+                
+                // Animate numbers
+                animateValue('final-score', 0, score, 1500);
+                animateValue('final-correct', 0, correctAnswers, 1000);
+                animateValue('final-wrong', 0, wrongAnswers, 1000);
+                
+                let message = "";
+                if (correctAnswers === 10) message = "شگفت‌انگیزه! تو استاد داستان حضرت فاطمه (س) هستی.";
+                else if (correctAnswers >= 7) message = "آفرین! اطلاعات بسیار خوبی داری.";
+                else if (correctAnswers >= 4) message = "خوب بود! با کمی دقت بیشتر قهرمان می‌شی.";
+                else message = "ممنون که تلاش کردی! دوباره بازی کن تا بیشتر یاد بگیری.";
+                
+                document.getElementById('final-message').innerText = message;
+                
+                if (correctAnswers >= 7) {
+                    createFlowers();
+                }
+            }, 500);
+        }
+
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function createFlowers() {
+            const symbols = ['✿', '❀', '❁']; // نمادهای گل یاس
+            for(let i=0; i<40; i++) {
+                let flower = document.createElement('div');
+                flower.className = 'flower';
+                flower.innerHTML = symbols[Math.floor(Math.random() * symbols.length)];
+                flower.style.left = Math.random() * 100 + 'vw';
+                flower.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                flower.style.animationDelay = Math.random() * 3 + 's';
+                flower.style.fontSize = (Math.random() * 16 + 24) + 'px';
+                document.getElementById('result-screen').appendChild(flower);
+            }
+        }
+
+        // --- 3. Three.js Background Implementation ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0f172a);
+        scene.fog = new THREE.FogExp2(0x0f172a, 0.04);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 3, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        hemiLight.position.set(0, 20, 0);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 15, 8);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        scene.add(dirLight);
+
+        // Abstract Ground Grid
+        const gridHelper = new THREE.GridHelper(60, 60, 0xffffff, 0xffffff);
+        gridHelper.material.opacity = 0.1;
+        gridHelper.material.transparent = true;
+        scene.add(gridHelper);
+
+        const groundGeo = new THREE.PlaneGeometry(100, 100);
+        const groundMat = new THREE.MeshStandardMaterial({ 
+            color: 0x0f172a, 
+            roughness: 0.8, 
+            metalness: 0.2 
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        ground.position.y = -0.5;
+        scene.add(ground);
+
+        // Dynamic Stage Groups
+        let stageObjects = new THREE.Group();
+        scene.add(stageObjects);
+        
+        let ambientParticles = new THREE.Group();
+        scene.add(ambientParticles);
+
+        // Magic Dust Particles
+        const dustGeo = new THREE.BufferGeometry();
+        const dustCount = window.innerWidth < 768 ? 150 : 300; // Optimize for mobile
+        const posArray = new Float32Array(dustCount * 3);
+        for(let i=0; i<dustCount*3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 40; 
+        }
+        dustGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const dustMat = new THREE.PointsMaterial({
+            size: 0.15,
+            color: 0xffffff,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending
+        });
+        const dustMesh = new THREE.Points(dustGeo, dustMat);
+        ambientParticles.add(dustMesh);
+
+        function setupInitialShapes() {
+            // Clear current objects
+            while(stageObjects.children.length > 0){ 
+                stageObjects.remove(stageObjects.children[0]); 
+            }
+
+            const geometries = [
+                new THREE.TorusKnotGeometry(0.8, 0.25, 100, 16),
+                new THREE.IcosahedronGeometry(1.2, 0),
+                new THREE.OctahedronGeometry(1.2, 1)
+            ];
+
+            for(let i = -1; i <= 1; i++) {
+                const geo = geometries[i + 1];
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: 0xffffff,
+                    metalness: 0.4,
+                    roughness: 0.2,
+                    emissive: 0x0284c7,
+                    emissiveIntensity: 0.4
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                
+                const spread = window.innerWidth < 768 ? 2.5 : 4;
+                mesh.position.set(i * spread, 2.5, -4);
+                
+                mesh.userData = { floating: true, baseY: 2.5, rotSpeed: (Math.random() * 0.02) + 0.01 };
+                mesh.castShadow = true;
+                stageObjects.add(mesh);
+
+                mesh.scale.set(0,0,0);
+                new TWEEN.Tween(mesh.scale)
+                    .to({x: 1, y: 1, z: 1}, 1000)
+                    .delay((i+1) * 200 + 200)
+                    .easing(TWEEN.Easing.Elastic.Out)
+                    .start();
+            }
+        }
+
+        function changeEnvironmentColor(questionIndex) {
+            const colorHex = bgColors[questionIndex % bgColors.length];
+            
+            // Smoothly animate colors
+            new TWEEN.Tween(scene.fog)
+                .to({ color: { r: new THREE.Color(colorHex).r, g: new THREE.Color(colorHex).g, b: new THREE.Color(colorHex).b } }, 1500)
+                .start();
+            new TWEEN.Tween(scene.background)
+                .to({ color: { r: new THREE.Color(colorHex).r, g: new THREE.Color(colorHex).g, b: new THREE.Color(colorHex).b } }, 1500)
+                .start();
+                
+            // Update emissive color of floating shapes
+            stageObjects.children.forEach(child => {
+                new TWEEN.Tween(child.material.emissive)
+                    .to({ r: new THREE.Color(colorHex).r, g: new THREE.Color(colorHex).g, b: new THREE.Color(colorHex).b }, 1500)
+                    .start();
+            });
+        }
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }, false);
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            TWEEN.update();
+            
+            const elapsedTime = clock.getElapsedTime();
+
+            // Rotate particles
+            ambientParticles.rotation.y = elapsedTime * 0.03;
+            dustMesh.position.y = Math.sin(elapsedTime * 0.5) * 0.5;
+
+            // Animate floating stage objects
+            stageObjects.children.forEach((child, index) => {
+                if(child.userData.floating) {
+                    child.position.y = child.userData.baseY + Math.sin(elapsedTime * 2 + index) * 0.4;
+                    child.rotation.y += child.userData.rotSpeed;
+                    child.rotation.x += child.userData.rotSpeed * 0.5;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+
+        // Start animation when window loads
+        window.onload = function() {
+            animateLoop();
+        };
+
+    </script>
+</body>
+</html>
